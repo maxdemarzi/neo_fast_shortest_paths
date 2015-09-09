@@ -92,17 +92,20 @@ public class Service {
             for (Node edgeEmail : edgeEmailNodes ) {
                 HashMap<String, Object> result = new HashMap<>();
                 int length = 0;
-                int[] count = {0};
+                int count = 0;
                 for ( org.neo4j.graphdb.Path path : shortestPath.findAllPaths( centerNode, edgeEmail ) )
                 {
                     length = path.length();
-                    count[0]++;
+                    count++;
                 }
-                result.put("email", edgeEmail.getProperty("email", ""));
-                result.put("length", length);
-                result.put("count", count[0]);
 
-                results.add(result);
+                if (length > 0 && count > 0) {
+                  result.put("email", edgeEmail.getProperty("email", ""));
+                  result.put("length", length);
+                  result.put("count", count);
+
+                  results.add(result);
+                }
             }
         }
         return Response.ok().entity(objectMapper.writeValueAsString(results)).build();

@@ -72,6 +72,17 @@ public class ShortestTest {
         }};
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
+
+    @Test
+    public void shouldIgnoreWithNoPath() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
+                QUERY_NO_PATH_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>();
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
     public static final String MODEL_STATEMENT =
             new StringBuilder()
                     .append("CREATE (start:Email {email:'start@maxdemarzi.com'})")
@@ -80,6 +91,7 @@ public class ShortestTest {
                     .append("CREATE (three:Email {email:'three@maxdemarzi.com'})")
                     .append("CREATE (four:Email {email:'four@maxdemarzi.com'})")
                     .append("CREATE (five:Email {email:'five@maxdemarzi.com'})")
+                    .append("CREATE (nope:Email {email:'unconnected@maxdemarzi.com'})")
                     .append("CREATE (start)-[:CONNECTS]->(one)")
                     .append("CREATE (one)-[:CONNECTS]->(two)")
                     .append("CREATE (one)-[:CONNECTS]->(three)")
@@ -148,5 +160,11 @@ public class ShortestTest {
         put("email", "five@maxdemarzi.com");
         put("length", 3);
         put("count", 2);
+    }};
+
+    public static HashMap<String, Object> QUERY_NO_PATH_MAP = new HashMap<String, Object>(){{
+        put("center_email", "start@maxdemarzi.com");
+        put("edge_emails", new ArrayList<String>() {{  add("unconnected@maxdemarzi.com");} });
+        put("length", 4);
     }};
 }
