@@ -27,6 +27,16 @@ public class ShortestTest {
     }
 
     @Test
+    public void shouldFindShortestPathOneGivenExtraMissingEmail() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
+                QUERY_ONE_PLUS_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
     public void shouldFindShortestPathTwo() {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
                 QUERY_TWO_MAP);
@@ -70,6 +80,12 @@ public class ShortestTest {
     public static HashMap<String, Object> QUERY_ONE_MAP = new HashMap<String, Object>(){{
         put("center_email", "start@maxdemarzi.com");
         put("edge_emails", new ArrayList<String>() {{  add("one@maxdemarzi.com");} });
+        put("length", 4);
+    }};
+
+    public static HashMap<String, Object> QUERY_ONE_PLUS_MAP = new HashMap<String, Object>(){{
+        put("center_email", "start@maxdemarzi.com");
+        put("edge_emails", new ArrayList<String>() {{  add("one@maxdemarzi.com"); add("not-in@the.db");} });
         put("length", 4);
     }};
 
