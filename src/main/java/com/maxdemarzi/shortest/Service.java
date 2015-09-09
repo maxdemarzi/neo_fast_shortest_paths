@@ -35,14 +35,18 @@ public class Service {
             .maximumSize(1_000_000)
             .build(
                     new CacheLoader<String, Long>() {
-                        public Long load(String email) {
+                        public Long load(String email) throws Exception {
                             return getEmailNodeId(email);
                         }
                     });
 
-    private static Long getEmailNodeId(String email){
+    private static Long getEmailNodeId(String email) throws Exception{
         final Node node = db.findNode(Labels.Email, "email", email);
-        return node.getId();
+        if (node != null) {
+            return node.getId();
+        } else {
+            throw new Exception("Email not found");
+        }
     }
 
     @GET
@@ -72,7 +76,13 @@ public class Service {
         try (Transaction tx = db.beginTx()) {
             final Node centerNode = db.getNodeById(emails.get((String)input.get("center_email")));
             for (String edgeEmail : (ArrayList<String>)input.get("edge_emails")) {
-                final Node edgeEmailNode = db.getNodeById(emails.get(edgeEmail));
+                Long id;
+                try {
+                    id = emails.get(edgeEmail);
+                } catch (Exception e) {
+                    continue;
+                }
+                final Node edgeEmailNode = db.getNodeById(id);
                 edgeEmailNodes.add(edgeEmailNode);
             }
 

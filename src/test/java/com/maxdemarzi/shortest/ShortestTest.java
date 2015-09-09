@@ -51,6 +51,17 @@ public class ShortestTest {
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
+    @Test
+    public void shouldDealWithMissingEmails() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
+                QUERY_FOUR_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(FOUR_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
     public static final String MODEL_STATEMENT =
             new StringBuilder()
                     .append("CREATE (start:Email {email:'start@maxdemarzi.com'})")
@@ -103,6 +114,21 @@ public class ShortestTest {
     }};
 
     static HashMap<String, Object> THREE_MAP = new HashMap<String, Object>(){{
+        put("email", "five@maxdemarzi.com");
+        put("length", 3);
+        put("count", 2);
+    }};
+
+    public static HashMap<String, Object> QUERY_FOUR_MAP = new HashMap<String, Object>(){{
+        put("center_email", "start@maxdemarzi.com");
+        put("edge_emails", new ArrayList<String>() {{
+            add("five@maxdemarzi.com");
+            add("six@maxdemarzi.com");
+        }});
+        put("length", 4);
+    }};
+
+    static HashMap<String, Object> FOUR_MAP = new HashMap<String, Object>(){{
         put("email", "five@maxdemarzi.com");
         put("length", 3);
         put("count", 2);
