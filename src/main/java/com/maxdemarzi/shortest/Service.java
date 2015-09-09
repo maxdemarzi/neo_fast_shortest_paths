@@ -35,18 +35,17 @@ public class Service {
             .maximumSize(1_000_000)
             .build(
                     new CacheLoader<String, Long>() {
-                        public Long load(String email) {
+                        public Long load(String email) throws Exception {
                             return getEmailNodeId(email);
                         }
                     });
 
-    private static Long getEmailNodeId(String email){
+    private static Long getEmailNodeId(String email) throws Exception{
         final Node node = db.findNode(Labels.Email, "email", email);
         if (node != null) {
             return node.getId();
-        }
-        else {
-            return -1l;
+        } else {
+            throw new Exception("Email not found");
         }
     }
 
@@ -77,11 +76,14 @@ public class Service {
         try (Transaction tx = db.beginTx()) {
             final Node centerNode = db.getNodeById(emails.get((String)input.get("center_email")));
             for (String edgeEmail : (ArrayList<String>)input.get("edge_emails")) {
-                final Long nodeId = emails.get(edgeEmail);
-                if (nodeId != null && nodeId > 0) {
-                    final Node edgeEmailNode = db.getNodeById(nodeId);
-                    edgeEmailNodes.add(edgeEmailNode);
+                Long id;
+                try {
+                    id = emails.get(edgeEmail);
+                } catch (Exception e) {
+                    continue;
                 }
+                final Node edgeEmailNode = db.getNodeById(id);
+                edgeEmailNodes.add(edgeEmailNode);
             }
 
             PathExpander<?> expander =  PathExpanders.allTypesAndDirections();
