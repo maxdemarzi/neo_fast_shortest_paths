@@ -27,16 +27,6 @@ public class ShortestTest {
     }
 
     @Test
-    public void shouldFindShortestPathOneGivenExtraMissingEmail() {
-        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
-                QUERY_ONE_PLUS_MAP);
-
-        ArrayList actual = response.content();
-        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
-        assertArrayEquals(expected.toArray(), actual.toArray());
-    }
-
-    @Test
     public void shouldFindShortestPathTwo() {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
                 QUERY_TWO_MAP);
@@ -62,7 +52,7 @@ public class ShortestTest {
     }
 
     @Test
-    public void shouldDealWithMissingEmails() {
+    public void shouldDealWithMissingEdgeEmail() {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
                 QUERY_FOUR_MAP);
 
@@ -70,6 +60,16 @@ public class ShortestTest {
         ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
             add(FOUR_MAP);
         }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    public void shouldDealWithMissingCenterEmail() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
+                QUERY_FIVE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>();
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
@@ -152,6 +152,15 @@ public class ShortestTest {
         put("edge_emails", new ArrayList<String>() {{
             add("five@maxdemarzi.com");
             add("six@maxdemarzi.com");
+        }});
+        put("length", 4);
+    }};
+
+    public static HashMap<String, Object> QUERY_FIVE_MAP = new HashMap<String, Object>(){{
+        put("center_email", "six@maxdemarzi.com");
+        put("edge_emails", new ArrayList<String>() {{
+            add("five@maxdemarzi.com");
+            add("start@maxdemarzi.com");
         }});
         put("length", 4);
     }};

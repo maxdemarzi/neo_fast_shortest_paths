@@ -74,15 +74,22 @@ public class Service {
         HashMap input = getValidQueryInput(body);
 
         try (Transaction tx = db.beginTx()) {
-            final Node centerNode = db.getNodeById(emails.get((String)input.get("center_email")));
+            Long centerId;
+            try {
+                centerId = emails.get((String)input.get("center_email"));
+            } catch (Exception e) {
+                return Response.ok().entity("[]").build();
+            }
+
+            final Node centerNode = db.getNodeById(centerId);
             for (String edgeEmail : (ArrayList<String>)input.get("edge_emails")) {
-                Long id;
+                Long edgeId;
                 try {
-                    id = emails.get(edgeEmail);
+                    edgeId = emails.get(edgeEmail);
                 } catch (Exception e) {
                     continue;
                 }
-                final Node edgeEmailNode = db.getNodeById(id);
+                final Node edgeEmailNode = db.getNodeById(edgeId);
                 edgeEmailNodes.add(edgeEmailNode);
             }
 
