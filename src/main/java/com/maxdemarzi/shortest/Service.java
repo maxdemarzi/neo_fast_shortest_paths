@@ -249,11 +249,11 @@ public class Service {
             }
 
             for (Long id : level1) {
-                counters[2].remove(id);
+                counters[3].remove(id);
             }
 
             for (Long id : level2) {
-                counters[2].remove(id);
+                counters[3].remove(id);
             }
 
             for (Long id : level3) {
