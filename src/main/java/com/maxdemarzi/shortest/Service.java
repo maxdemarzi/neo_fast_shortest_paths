@@ -193,8 +193,6 @@ public class Service {
     @Path("/query3")
     public Response query3(String body, @Context GraphDatabaseService db) throws IOException, ExecutionException {
         ArrayList<HashMap> results = new ArrayList<>();
-        ArrayList<Long> edgeEmailNodeIds = new ArrayList<>();
-        ArrayList<Node> edgeEmailNodes = new ArrayList<>();
         SimpleCounter<Long>[] counters = new SimpleCounter[] { new SimpleCounter(), new SimpleCounter(), new SimpleCounter(), new SimpleCounter()};
 
         // Validate our input or exit right away
