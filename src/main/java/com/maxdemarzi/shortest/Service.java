@@ -282,6 +282,7 @@ public class Service {
                             length = 3;
                         } else {
                             count = counters[3].getCount(id);
+                            length = 4;
                         }
                     }
                 }
