@@ -4,13 +4,19 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.neo4j.harness.junit.Neo4jRule;
 import org.neo4j.test.server.HTTP;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class ShortestTest {
+
+    final static ObjectMapper mapper = new ObjectMapper();
+
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
             .withFixture(MODEL_STATEMENT)
@@ -84,13 +90,26 @@ public class ShortestTest {
     }
 
     @Test
-    public void shouldStreamFindShortestPathOne() {
+    public void shouldStreamFindShortestPathOne() throws Exception {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_streaming").toString(),
                 QUERY_ONE_MAP);
 
-        ArrayList actual = response.content();
-        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
-        assertArrayEquals(expected.toArray(), actual.toArray());
+        String raw = response.rawContent();
+        Map<String,Object> actual = mapper.readValue(raw, Map.class);
+        assertEquals(ONE_MAP, actual);
+    }
+
+    @Test
+    public void shouldStreamFindShortestPathTwo() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_streaming").toString(),
+                QUERY_TWO_MAP);
+
+        String raw = response.rawContent();
+        String[] lines = raw.split("\n");
+
+        assertEquals(2, lines.length);
+        assertEquals(ONE_MAP, mapper.readValue(lines[0], Map.class));
+        assertEquals(TWO_MAP, mapper.readValue(lines[1], Map.class));
     }
 
     public static final String MODEL_STATEMENT =
@@ -113,12 +132,6 @@ public class ShortestTest {
     public static HashMap<String, Object> QUERY_ONE_MAP = new HashMap<String, Object>(){{
         put("center_email", "start@maxdemarzi.com");
         put("edge_emails", new ArrayList<String>() {{  add("one@maxdemarzi.com");} });
-        put("length", 4);
-    }};
-
-    public static HashMap<String, Object> QUERY_ONE_PLUS_MAP = new HashMap<String, Object>(){{
-        put("center_email", "start@maxdemarzi.com");
-        put("edge_emails", new ArrayList<String>() {{  add("one@maxdemarzi.com"); add("not-in@the.db");} });
         put("length", 4);
     }};
 

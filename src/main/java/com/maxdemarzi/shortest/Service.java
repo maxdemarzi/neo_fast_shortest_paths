@@ -137,7 +137,6 @@ public class Service {
             @Override
             public void write(OutputStream os) throws IOException, WebApplicationException {
                 JsonGenerator jg = objectMapper.getJsonFactory().createJsonGenerator(os, JsonEncoding.UTF8);
-                jg.writeStartArray();
 
                 ArrayList<Node> edgeEmailNodes = new ArrayList<>();
 
@@ -149,8 +148,6 @@ public class Service {
                     try {
                         centerNode = db.getNodeById(emails.get((String) input.get("center_email")));
                     } catch (ExecutionException e) {
-                        jg.writeEndArray();
-                        jg.flush();
                         jg.close();
                         return;
                     }
@@ -184,11 +181,11 @@ public class Service {
                             jg.writeNumberField("length", length);
                             jg.writeNumberField("count", count);
                             jg.writeEndObject();
+                            jg.writeRaw("\n");
+                            jg.flush();
                         }
                     }
                 }
-                jg.writeEndArray();
-                jg.flush();
                 jg.close();
             }
         };
