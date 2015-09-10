@@ -62,6 +62,17 @@ public class ShortestTest {
         }};
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
+
+    @Test
+    public void shouldStreamFindShortestPathOne() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query2").toString(),
+                QUERY_ONE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
     public static final String MODEL_STATEMENT =
             new StringBuilder()
                     .append("CREATE (start:Email {email:'start@maxdemarzi.com'})")
