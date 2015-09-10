@@ -73,6 +73,55 @@ public class ShortestTest {
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
+    @Test
+    public void shouldFindShortestPathByCountersOne() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_ONE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersTwo() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_TWO_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(ONE_MAP);
+            add(TWO_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersThree() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_THREE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(THREE_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+
+    }
+
+    @Test
+    public void shouldDealWithMissingEmailsByCounters() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_FOUR_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(FOUR_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
     public static final String MODEL_STATEMENT =
             new StringBuilder()
                     .append("CREATE (start:Email {email:'start@maxdemarzi.com'})")
