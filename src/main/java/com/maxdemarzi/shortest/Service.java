@@ -197,112 +197,74 @@ public class Service {
      *  length: An integer representing the maximum traversal search length
      */
     @POST
-    @Path("/query3")
-    public Response query3(String body, @Context GraphDatabaseService db) throws IOException, ExecutionException {
-        ArrayList<HashMap> results = new ArrayList<>();
-        SimpleCounter<Long>[] counters = new SimpleCounter[] { new SimpleCounter(), new SimpleCounter(), new SimpleCounter(), new SimpleCounter()};
+    @Path("/query_counters")
+    public Response query_counters(String body, @Context GraphDatabaseService db) throws IOException, ExecutionException {
 
-        // Validate our input or exit right away
-        HashMap input = getValidQueryInput(body);
+        StreamingOutput stream = new StreamingOutput() {
+            @Override
+            public void write(OutputStream os) throws IOException, WebApplicationException {
+                JsonGenerator jg = objectMapper.getJsonFactory().createJsonGenerator(os, JsonEncoding.UTF8);
 
-        try (Transaction tx = db.beginTx()) {
-            final Node centerNode;
-            try {
-                centerNode = db.getNodeById(emails.get((String) input.get("center_email")));
-            } catch (ExecutionException e) {
-                throw Exceptions.invalidCenterEmailParameter;
-            }
+                // Validate our input or exit right away
+                HashMap input = getValidQueryInput(body);
+                int maxLength = (int) input.get("length");
+                
+                try (Transaction tx = db.beginTx()) {
+                    final Long centerNodeId;
+                    try {
+                        centerNodeId = emails.get((String) input.get("center_email"));
+                    } catch (ExecutionException e) {
+                        jg.close();
+                        return;
+                    }
 
-            for (Relationship rel : centerNode.getRelationships()) {
-                counters[0].increment(rel.getOtherNode(centerNode).getId());
-            }
-
-            Set<Long> level1 = counters[0].getKeys();
-            for (Long id : level1) {
-                Node friend = db.getNodeById(id);
-                for (Relationship rel : friend.getRelationships()) {
-                    counters[1].increment(rel.getOtherNode(friend).getId());
-                }
-            }
-
-            for (Long id : level1) {
-                counters[1].remove(id);
-            }
-
-            Set<Long> level2 = counters[1].getKeys();
-            for (Long id : level2) {
-                Node friend = db.getNodeById(id);
-                for (Relationship rel : friend.getRelationships()) {
-                    counters[2].increment(rel.getOtherNode(friend).getId());
-                }
-            }
-
-            for (Long id : level1) {
-                counters[2].remove(id);
-            }
-
-            for (Long id : level2) {
-                counters[2].remove(id);
-            }
-
-            Set<Long> level3 = counters[2].getKeys();
-            for (Long id : level3) {
-                Node friend = db.getNodeById(id);
-                for (Relationship rel : friend.getRelationships()) {
-                    counters[3].increment(rel.getOtherNode(friend).getId());
-                }
-            }
-
-            for (Long id : level1) {
-                counters[3].remove(id);
-            }
-
-            for (Long id : level2) {
-                counters[3].remove(id);
-            }
-
-            for (Long id : level3) {
-                counters[3].remove(id);
-            }
-
-            for (String edgeEmail : (ArrayList<String>) input.get("edge_emails")) {
-                HashMap<String, Object> result = new HashMap<>();
-                Long id;
-                try {
-                    id = emails.get(edgeEmail);
-                } catch (Exception e) {
-                    continue;
-                }
-                int length = 0;
-                int count = counters[0].getCount(id);
-                if (count > 0) {
-                    length = 1;
-                } else {
-                    count = counters[1].getCount(id);
-                    if (count > 0) {
-                        length = 2;
-                    } else {
-                        count = counters[2].getCount(id);
-                        if (count > 0) {
-                            length = 3;
-                        } else {
-                            count = counters[3].getCount(id);
-                            length = 4;
+                    final Map<Long,String> edgeEmailsByNodeId = new HashMap<>();
+                    for (String edgeEmail : (ArrayList<String>) input.get("edge_emails")) {
+                        try {
+                            edgeEmailsByNodeId.put(emails.get(edgeEmail), edgeEmail);
+                        } catch (Exception e) {
+                            continue;
                         }
                     }
+
+                    int level = 1;
+                    Set<Long> idsForLevel = new HashSet<>();
+                    idsForLevel.add(centerNodeId);
+
+                    while (level <= maxLength && !edgeEmailsByNodeId.isEmpty()) {
+                        // Get nodes at next level, counting by number of times they appear
+                        SimpleCounter<Long> counter = new SimpleCounter();
+                        for (Long id : idsForLevel) {
+                            Node friend = db.getNodeById(id);
+                            for (Relationship rel : friend.getRelationships()) {
+                                counter.increment(rel.getOtherNode(friend).getId());
+                            }
+                        }
+
+                        // Now next level is current level; report any target nodes that appear, then stop searching for them
+                        idsForLevel = counter.getKeys();
+                        for (Long id : idsForLevel) {
+                            if (edgeEmailsByNodeId.containsKey(id)) {
+                                jg.writeStartObject();
+                                jg.writeStringField("email", edgeEmailsByNodeId.get(id));
+                                jg.writeNumberField("length", level);
+                                jg.writeNumberField("count", counter.getCount(id));
+                                jg.writeEndObject();
+                                jg.writeRaw("\n");
+
+                                edgeEmailsByNodeId.remove(id);
+                            }
+                        }
+                        jg.flush();
+
+                        level++;
+                    }
                 }
-
-                if ( count > 0 ) {
-                    result.put("email", edgeEmail);
-                    result.put("length", length);
-                    result.put("count", count);
-                    results.add(result);
-                }
-
-
+                jg.close();
             }
-        }
-        return Response.ok().entity(objectMapper.writeValueAsString(results)).build();
+        };
+        return Response.ok().entity(stream).type(MediaType.APPLICATION_JSON).build();
+
     }
 
 }

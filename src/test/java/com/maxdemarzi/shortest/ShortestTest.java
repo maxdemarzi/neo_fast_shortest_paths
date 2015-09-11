@@ -72,7 +72,7 @@ public class ShortestTest {
     @Test
     public void shouldDealWithMissingCenterEmail() {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query").toString(),
-                QUERY_FIVE_MAP);
+                QUERY_NO_CENTER_EMAIL_MAP);
 
         ArrayList actual = response.content();
         ArrayList<HashMap> expected = new ArrayList<HashMap>();
@@ -104,30 +104,31 @@ public class ShortestTest {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_streaming").toString(),
                 QUERY_TWO_MAP);
 
-        String raw = response.rawContent();
-        String[] lines = raw.split("\n");
+        ArrayList actual = parseNewlineSeparated(response);
 
-        assertEquals(2, lines.length);
-        assertEquals(ONE_MAP, mapper.readValue(lines[0], Map.class));
-        assertEquals(TWO_MAP, mapper.readValue(lines[1], Map.class));
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(ONE_MAP);
+            add(TWO_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
     @Test
-    public void shouldFindShortestPathByCountersOne() {
-        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+    public void shouldFindShortestPathByCountersOne() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters").toString(),
                 QUERY_ONE_MAP);
 
-        ArrayList actual = response.content();
+        ArrayList actual = parseNewlineSeparated(response);
         ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
     @Test
-    public void shouldFindShortestPathByCountersTwo() {
-        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+    public void shouldFindShortestPathByCountersTwo() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters").toString(),
                 QUERY_TWO_MAP);
 
-        ArrayList actual = response.content();
+        ArrayList actual = parseNewlineSeparated(response);
         ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
             add(ONE_MAP);
             add(TWO_MAP);
@@ -137,11 +138,11 @@ public class ShortestTest {
     }
 
     @Test
-    public void shouldFindShortestPathByCountersThree() {
-        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+    public void shouldFindShortestPathByCountersThree() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters").toString(),
                 QUERY_THREE_MAP);
 
-        ArrayList actual = response.content();
+        ArrayList actual = parseNewlineSeparated(response);
         ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
             add(THREE_MAP);
         }};
@@ -150,11 +151,11 @@ public class ShortestTest {
     }
 
     @Test
-    public void shouldDealWithMissingEmailsByCounters() {
-        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+    public void shouldDealWithMissingEmailsByCounters() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters").toString(),
                 QUERY_FOUR_MAP);
 
-        ArrayList actual = response.content();
+        ArrayList actual = parseNewlineSeparated(response);
         ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
             add(FOUR_MAP);
         }};
@@ -162,15 +163,27 @@ public class ShortestTest {
     }
 
     @Test
-    public void shouldFindShortestPathByCountersFive() {
-        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+    public void shouldFindShortestPathByCountersFive() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters").toString(),
                 QUERY_FIVE_MAP);
 
-        ArrayList actual = response.content();
+        ArrayList actual = parseNewlineSeparated(response);
         ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
             add(FIVE_MAP);
         }};
         assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    private ArrayList parseNewlineSeparated(HTTP.Response response) throws Exception {
+        String raw = response.rawContent();
+        String[] lines = raw.split("\n");
+
+        ArrayList actual = new ArrayList();
+        for (String line : lines) {
+            actual.add(mapper.readValue(line, Map.class));
+        }
+
+        return actual;
     }
 
     public static final String MODEL_STATEMENT =
@@ -246,8 +259,8 @@ public class ShortestTest {
         put("length", 4);
     }};
 
-    public static HashMap<String, Object> QUERY_FIVE_MAP = new HashMap<String, Object>(){{
-        put("center_email", "six@maxdemarzi.com");
+    public static HashMap<String, Object> QUERY_NO_CENTER_EMAIL_MAP = new HashMap<String, Object>(){{
+        put("center_email", "missing@maxdemarzi.com");
         put("edge_emails", new ArrayList<String>() {{
             add("five@maxdemarzi.com");
             add("start@maxdemarzi.com");
