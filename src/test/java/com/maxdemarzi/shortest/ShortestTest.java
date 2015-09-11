@@ -112,6 +112,67 @@ public class ShortestTest {
         assertEquals(TWO_MAP, mapper.readValue(lines[1], Map.class));
     }
 
+    @Test
+    public void shouldFindShortestPathByCountersOne() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_ONE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersTwo() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_TWO_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(ONE_MAP);
+            add(TWO_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersThree() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_THREE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(THREE_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+
+    }
+
+    @Test
+    public void shouldDealWithMissingEmailsByCounters() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_FOUR_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(FOUR_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersFive() {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query3").toString(),
+                QUERY_FIVE_MAP);
+
+        ArrayList actual = response.content();
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(FIVE_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
     public static final String MODEL_STATEMENT =
             new StringBuilder()
                     .append("CREATE (start:Email {email:'start@maxdemarzi.com'})")
@@ -121,12 +182,18 @@ public class ShortestTest {
                     .append("CREATE (four:Email {email:'four@maxdemarzi.com'})")
                     .append("CREATE (five:Email {email:'five@maxdemarzi.com'})")
                     .append("CREATE (nope:Email {email:'unconnected@maxdemarzi.com'})")
+                    .append("CREATE (six:Email {email:'six@maxdemarzi.com'})")
+                    .append("CREATE (seven:Email {email:'seven@maxdemarzi.com'})")
+                    .append("CREATE (eight:Email {email:'eight@maxdemarzi.com'})")
                     .append("CREATE (start)-[:CONNECTS]->(one)")
                     .append("CREATE (one)-[:CONNECTS]->(two)")
                     .append("CREATE (one)-[:CONNECTS]->(three)")
                     .append("CREATE (one)-[:CONNECTS]->(four)")
                     .append("CREATE (three)<-[:CONNECTS]-(five)")
                     .append("CREATE (four)<-[:CONNECTS]-(five)")
+                    .append("CREATE (two)-[:CONNECTS]->(six)")
+                    .append("CREATE (six)-[:CONNECTS]->(seven)")
+                    .append("CREATE (seven)-[:CONNECTS]->(eight)")
                     .toString();
 
     public static HashMap<String, Object> QUERY_ONE_MAP = new HashMap<String, Object>(){{
@@ -174,7 +241,7 @@ public class ShortestTest {
         put("center_email", "start@maxdemarzi.com");
         put("edge_emails", new ArrayList<String>() {{
             add("five@maxdemarzi.com");
-            add("six@maxdemarzi.com");
+            add("sixty@maxdemarzi.com");
         }});
         put("length", 4);
     }};
@@ -198,5 +265,20 @@ public class ShortestTest {
         put("center_email", "start@maxdemarzi.com");
         put("edge_emails", new ArrayList<String>() {{  add("unconnected@maxdemarzi.com");} });
         put("length", 4);
+    }};
+
+    public static HashMap<String, Object> QUERY_FIVE_MAP = new HashMap<String, Object>(){{
+        put("center_email", "start@maxdemarzi.com");
+        put("edge_emails", new ArrayList<String>() {{
+            add("seven@maxdemarzi.com");
+            add("eight@maxdemarzi.com");
+        }});
+        put("length", 4);
+    }};
+
+    static HashMap<String, Object> FIVE_MAP = new HashMap<String, Object>(){{
+        put("email", "seven@maxdemarzi.com");
+        put("length", 4);
+        put("count", 1);
     }};
 }
