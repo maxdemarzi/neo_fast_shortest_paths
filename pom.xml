@@ -9,13 +9,20 @@
     <version>1.6</version>
 
     <properties>
-        <neo4j.version>2.2.5</neo4j.version>
+        <neo4j.version>2.3-SNAPSHOT</neo4j.version>
         <junit.version>4.12</junit.version>
         <guava.version>18.0</guava.version>
         <koloboke.version>0.6.7</koloboke.version>
         <jmh.version>1.10.5</jmh.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>neo4j</id>
+            <url>http://m2.neo4j.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>

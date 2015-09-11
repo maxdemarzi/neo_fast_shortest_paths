@@ -235,6 +235,67 @@ public class ShortestTest {
         assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
+    @Test
+    public void shouldFindShortestPathByCountersOne3() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters3").toString(),
+                QUERY_ONE_MAP);
+
+        ArrayList actual = parseNewlineSeparated(response);
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{ add(ONE_MAP); }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersTwo3() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters3").toString(),
+                QUERY_TWO_MAP);
+
+        ArrayList actual = parseNewlineSeparated(response);
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(ONE_MAP);
+            add(TWO_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersThree3() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters3").toString(),
+                QUERY_THREE_MAP);
+
+        ArrayList actual = parseNewlineSeparated(response);
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(THREE_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+
+    }
+
+    @Test
+    public void shouldDealWithMissingEmailsByCounters3() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters3").toString(),
+                QUERY_FOUR_MAP);
+
+        ArrayList actual = parseNewlineSeparated(response);
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(FOUR_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
+    @Test
+    public void shouldFindShortestPathByCountersFive3() throws Exception {
+        HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/v1/service/query_counters3").toString(),
+                QUERY_FIVE_MAP);
+
+        ArrayList actual = parseNewlineSeparated(response);
+        ArrayList<HashMap> expected = new ArrayList<HashMap>() {{
+            add(FIVE_MAP);
+        }};
+        assertArrayEquals(expected.toArray(), actual.toArray());
+    }
+
     private ArrayList parseNewlineSeparated(HTTP.Response response) throws Exception {
         String raw = response.rawContent();
         String[] lines = raw.split("\n");

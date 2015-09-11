@@ -11,9 +11,15 @@ import net.openhft.koloboke.collect.set.hash.HashLongSets;
 import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.neo4j.cursor.Cursor;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphdb.*;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.api.ReadOperations;
+import org.neo4j.kernel.api.cursor.NodeItem;
+import org.neo4j.kernel.api.cursor.RelationshipItem;
+import org.neo4j.kernel.impl.core.ThreadToStatementContextBridge;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -35,9 +41,11 @@ public class Service {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static GraphDatabaseService db;
+    private final GraphDatabaseAPI dbAPI;
 
     public Service(@Context GraphDatabaseService graphDatabaseService) {
         db = graphDatabaseService;
+        dbAPI = (GraphDatabaseAPI) db;
     }
 
     private static final LoadingCache<String, Long> emails = CacheBuilder.newBuilder()
@@ -350,5 +358,92 @@ public class Service {
         return Response.ok().entity(stream).type(MediaType.APPLICATION_JSON).build();
     }
 
+    /**
+     * JSON formatted body requires:
+     *  center_email: An email address
+     *  edge_emails: An Array of email addresses
+     *  length: An integer representing the maximum traversal search length
+     */
+    @POST
+    @Path("/query_counters3")
+    public Response query_counters3(String body, @Context GraphDatabaseService db) throws IOException, ExecutionException {
+
+        StreamingOutput stream = new StreamingOutput() {
+            @Override
+            public void write(OutputStream os) throws IOException, WebApplicationException {
+                JsonGenerator jg = objectMapper.getJsonFactory().createJsonGenerator(os, JsonEncoding.UTF8);
+
+                // Validate our input or exit right away
+                HashMap input = getValidQueryInput(body);
+                int maxLength = (int) input.get("length");
+
+                try (Transaction tx = db.beginTx()) {
+                    ThreadToStatementContextBridge ctx = dbAPI.getDependencyResolver().resolveDependency(ThreadToStatementContextBridge.class);
+                    ReadOperations ops = ctx.get().readOperations();
+
+                    final Long centerNodeId;
+                    try {
+                        centerNodeId = emails.get((String) input.get("center_email"));
+                    } catch (ExecutionException e) {
+                        jg.close();
+                        return;
+                    }
+
+                    final Map<Long,String> edgeEmailsByNodeId = new HashMap<>();
+                    for (String edgeEmail : (ArrayList<String>) input.get("edge_emails")) {
+                        try {
+                            edgeEmailsByNodeId.put(emails.get(edgeEmail), edgeEmail);
+                        } catch (Exception e) {
+                            continue;
+                        }
+                    }
+
+                    int level = 1;
+                    LongSet idsForlevel = HashLongSets.newMutableSet();
+                    idsForlevel.add((long) centerNodeId);
+                    Cursor<NodeItem> nodeCursor;
+                    Cursor<RelationshipItem> relationshipCursor;
+                    LongCursor longCursor;
+
+                    while (level <= maxLength && !edgeEmailsByNodeId.isEmpty()) {
+                        // Get nodes at next level, counting by number of times they appear
+                        HashLongIntMap counter = HashLongIntMaps.newMutableMap();
+                        longCursor = idsForlevel.cursor();
+                        while (longCursor.moveNext()) {
+                            nodeCursor = ops.nodeCursor(longCursor.elem());
+                            nodeCursor.next();
+                            relationshipCursor = nodeCursor.get().relationships(Direction.BOTH);
+
+                            while (relationshipCursor.next()) {
+                                counter.addValue(relationshipCursor.get().otherNode(longCursor.elem()), 1, 0);
+                            }
+                        }
+
+                        // Now next level is current level; report any target nodes that appear, then stop searching for them
+                        idsForlevel = counter.keySet();
+                        longCursor = idsForlevel.cursor();
+
+                        while (longCursor.moveNext()) {
+                            if (edgeEmailsByNodeId.containsKey(longCursor.elem())) {
+                                jg.writeStartObject();
+                                jg.writeStringField("email", edgeEmailsByNodeId.get(longCursor.elem()));
+                                jg.writeNumberField("length", level);
+                                jg.writeNumberField("count", counter.get(longCursor.elem()));
+                                jg.writeEndObject();
+                                jg.writeRaw("\n");
+
+                                edgeEmailsByNodeId.remove(longCursor.elem());
+                            }
+                        }
+                        jg.flush();
+
+                        level++;
+                    }
+                }
+                jg.close();
+            }
+        };
+        return Response.ok().entity(stream).type(MediaType.APPLICATION_JSON).build();
+    }
 
 }
