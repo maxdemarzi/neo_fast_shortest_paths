@@ -3,6 +3,11 @@ package com.maxdemarzi.shortest;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import net.openhft.koloboke.collect.LongCursor;
+import net.openhft.koloboke.collect.map.hash.HashLongIntMap;
+import net.openhft.koloboke.collect.map.hash.HashLongIntMaps;
+import net.openhft.koloboke.collect.set.LongSet;
+import net.openhft.koloboke.collect.set.hash.HashLongSets;
 import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -264,7 +269,86 @@ public class Service {
             }
         };
         return Response.ok().entity(stream).type(MediaType.APPLICATION_JSON).build();
-
     }
+
+    /**
+     * JSON formatted body requires:
+     *  center_email: An email address
+     *  edge_emails: An Array of email addresses
+     *  length: An integer representing the maximum traversal search length
+     */
+    @POST
+    @Path("/query_counters2")
+    public Response query_counters2(String body, @Context GraphDatabaseService db) throws IOException, ExecutionException {
+
+        StreamingOutput stream = new StreamingOutput() {
+            @Override
+            public void write(OutputStream os) throws IOException, WebApplicationException {
+                JsonGenerator jg = objectMapper.getJsonFactory().createJsonGenerator(os, JsonEncoding.UTF8);
+
+                // Validate our input or exit right away
+                HashMap input = getValidQueryInput(body);
+                int maxLength = (int) input.get("length");
+
+                try (Transaction tx = db.beginTx()) {
+                    final Long centerNodeId;
+                    try {
+                        centerNodeId = emails.get((String) input.get("center_email"));
+                    } catch (ExecutionException e) {
+                        jg.close();
+                        return;
+                    }
+
+                    final Map<Long,String> edgeEmailsByNodeId = new HashMap<>();
+                    for (String edgeEmail : (ArrayList<String>) input.get("edge_emails")) {
+                        try {
+                            edgeEmailsByNodeId.put(emails.get(edgeEmail), edgeEmail);
+                        } catch (Exception e) {
+                            continue;
+                        }
+                    }
+
+                    int level = 1;
+                    LongSet idsForlevel = HashLongSets.newMutableSet();
+                    idsForlevel.add((long)centerNodeId);
+
+                    while (level <= maxLength && !edgeEmailsByNodeId.isEmpty()) {
+                        // Get nodes at next level, counting by number of times they appear
+                        HashLongIntMap counter = HashLongIntMaps.newMutableMap();
+
+                        LongCursor longCursor = idsForlevel.cursor();
+                        while (longCursor.moveNext()) {
+                            Node friend = db.getNodeById(longCursor.elem());
+                            for (Relationship rel : friend.getRelationships()) {
+                                counter.addValue(rel.getOtherNode(friend).getId(), 1, 0);
+                            }
+                        }
+
+                        // Now next level is current level; report any target nodes that appear, then stop searching for them
+                        idsForlevel = counter.keySet();
+                        LongCursor longCursor2 = idsForlevel.cursor();
+                        while (longCursor2.moveNext()) {
+                            if (edgeEmailsByNodeId.containsKey(longCursor2.elem())) {
+                                jg.writeStartObject();
+                                jg.writeStringField("email", edgeEmailsByNodeId.get(longCursor2.elem()));
+                                jg.writeNumberField("length", level);
+                                jg.writeNumberField("count", counter.get(longCursor2.elem()));
+                                jg.writeEndObject();
+                                jg.writeRaw("\n");
+
+                                edgeEmailsByNodeId.remove(longCursor2.elem());
+                            }
+                        }
+                        jg.flush();
+
+                        level++;
+                    }
+                }
+                jg.close();
+            }
+        };
+        return Response.ok().entity(stream).type(MediaType.APPLICATION_JSON).build();
+    }
+
 
 }

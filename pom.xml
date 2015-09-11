@@ -12,6 +12,7 @@
         <neo4j.version>2.2.5</neo4j.version>
         <junit.version>4.12</junit.version>
         <guava.version>18.0</guava.version>
+        <koloboke.version>0.6.7</koloboke.version>
         <jmh.version>1.10.5</jmh.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -78,6 +79,17 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>koloboke-api-jdk8</artifactId>
+            <version>${koloboke.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>koloboke-impl-jdk8</artifactId>
+            <version>${koloboke.version}</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
